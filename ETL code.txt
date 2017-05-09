@@ -1,0 +1,830 @@
+Imports System
+Imports System.Data
+Imports System.Data.SqlClient
+Imports System.Configuration
+Imports System.Diagnostics
+Imports System.IO
+Imports System.Web.Configuration
+Imports System.Collections.Generic
+Imports System.Data.OleDb
+Imports System.Web.Hosting
+Imports System.Data.Odbc
+Imports System.Data.OracleClient
+
+
+
+Partial Class _Default
+    Inherits System.Web.UI.Page
+    Dim conn As SqlConnection
+    Dim comm As SqlCommand
+    Dim dr As SqlDataReader
+    Dim Name As String, lineno2 As String, Gender As String, Mobile_no As String, Address As String, id As String
+    Dim cnst As String
+    Dim st As String
+    Dim insertstat As String
+    Public output As String = "info.text"
+    Dim fs As System.IO.FileStream
+    Dim str As StringBuilder
+    Dim a As String
+    Dim r As Boolean
+    Dim connsource As String
+    Dim conndest As String
+
+
+
+    Protected Sub Page_Load(sender As Object, e As EventArgs) Handles Me.Load
+        'MsgBox(addTwoNumbers(10, 5))
+       
+        ' MsgBox(wtf(conn, query:=st, delimiter:="|", outputfilename:="D:/SqlExport2.text", Qualifier:=""""))
+
+        '(DBExecuteQueryWriteToFile(conn1, query1:=st, FileName:="D:/c.text", Delimiter:="|"))
+        'Response.Write(converttopostgres)
+
+        'Response.AppendHeader("Refresh", "5")
+        'Response.Write(automaticconverttopostgres)
+    End Sub
+
+    Function wtf(conn As SqlConnection, query As String, ByVal delimiter As String, ByVal Qualifier As String, outputfilename As String) As String
+
+        Try
+            cnst = "Data Source=192.168.1.111;Initial Catalog=SutexTest;Persist Security Info=True;User ID=sa;password=miscot;MultipleActiveResultSets=True;Connect Timeout=100"
+            conn = New SqlConnection(cnst)
+            conn.Open()
+            st = "select TOP 1000 * from OfficeActHistoryTable"
+            wtf = ""
+
+            Dim dr As SqlDataReader = Nothing
+
+            Dim comm As SqlCommand = Nothing
+            comm = New SqlCommand(st, conn)
+            dr = comm.ExecuteReader()
+
+            Dim objReader As System.IO.StreamWriter
+            Dim startpath As String = ""
+            Dim FullPath As String = outputfilename
+            If Not System.IO.Directory.Exists(System.IO.Path.GetDirectoryName(FullPath)) Then
+                System.IO.Directory.CreateDirectory(FullPath)
+            End If
+            FullPath = outputfilename
+            objReader = New System.IO.StreamWriter(FullPath, False)
+            Dim dat As Date
+            While dr.Read()
+                For i As Integer = 0 To dr.FieldCount - 1
+                    If (IsNumeric(dr(i))) Then
+                        wtf = wtf + dr(i).ToString + delimiter
+                    ElseIf (IsDate(dr(i))) Then
+                        dat = dr(i)
+
+                        wtf = wtf + dat.ToString("dd/MMM/yyyy") + delimiter
+                    Else
+
+                        wtf = wtf + Qualifier + dr(i).ToString + Qualifier + delimiter
+                    End If
+                Next
+                wtf = wtf.TrimEnd(CChar("|"))
+                wtf = wtf.TrimEnd(CChar(""""))
+                wtf = wtf.TrimEnd(CChar("|"))
+                objReader.WriteLine(wtf)
+                wtf = ""
+
+            End While
+            objReader.Close()
+
+
+
+
+            Dim res As Boolean = True
+            Dim str As New StringBuilder
+            Dim stringWrite As New System.IO.StringWriter
+            Response.Clear()
+            Response.Charset = ""
+            Response.ContentType = "text/plain"
+            Response.AddHeader("content-disposition", "attachment; filename=sqlexport" & ".txt")
+            Response.Write(wtf)
+            Response.End()
+            Return res
+        Catch ex As Exception
+            ErrorLog(tabname:="Enter", keyval:="K", error_desc:="Error", mod_name:="name")
+        Finally
+            dr.Close()
+            conn.Close()
+        End Try
+    End Function
+
+    Dim conn1 As New SqlConnection()
+    Function DBExecuteQueryWriteToFile(conn As SqlConnection, query1 As String, ByVal FileName As String, ByVal Delimiter As String) As String
+        cnst = "Data Source=192.168.1.111;Initial Catalog=SutexTest;Persist Security Info=True;User ID=sa;password=miscot;MultipleActiveResultSets=True;Connect Timeout=100"
+        conn = New SqlConnection(cnst)
+        conn.Open()
+        Dim reader As SqlDataReader = Nothing
+        Dim cmd As SqlCommand = Nothing
+        st = "select * from OfficeActHistoryTable"
+        cmd = New SqlCommand(st, conn)
+        reader = cmd.ExecuteReader()
+        Dim bufferSize As String
+        bufferSize = 1024 * 1024 * 1024
+
+        If File.Exists(FileName) Then
+            File.Delete(FileName)
+        End If
+        Using objWriter As New System.IO.StreamWriter(FileName, False)
+            'Using FileObject As New FileStream(FileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None, bufferSize)
+            '  Using StreamWriterObj As New StreamWriter(objReader)
+
+            Dim FieldCount As Integer = reader.FieldCount - 1
+
+            Do While reader.Read()
+                For i As Integer = 0 To FieldCount - 1
+                    objWriter.Write(Delimiter)
+                    objWriter.Write(reader.Item(i).ToString)
+
+                Next
+                objWriter.WriteLine()
+            Loop
+            reader.Close()
+            conn.Close()
+        End Using
+
+        ' End Using
+    End Function
+
+    Function converttopostgres() As String
+        Dim connString As String = "Driver={PostgreSQL ANSI(x64)};Server=192.168.1.44;Port=5432;Database=SwiftDar;Uid=postgres;Pwd=postgres;"
+        Dim pConn As New Odbc.OdbcConnection
+        pConn.ConnectionString = connString
+        pConn.Open()
+        Dim dp As OdbcDataReader
+
+
+        Dim sConnn As New SqlConnection
+        Dim sConnectionString As String = "Data Source=192.168.1.111;Initial Catalog=Sutextest;Min Pool Size=5;User ID=sa;password=miscot;MultipleActiveResultSets=True;"
+        sConnn.ConnectionString = sConnectionString
+        sConnn.Open()
+
+       Dim dr As SqlDataReader
+        Dim schemaTable As DataTable
+        Dim sql As String = "SELECT * FROM [dbo].[test13]"
+        'Dim sql1 As String = TextArea1.InnerText
+        dr = GetDataReader(sql, sConnn)
+        Dim cmd As New OdbcCommand
+        Dim sLine As String = ""
+        Dim ds As DataSet
+        Dim Dat As Date = DateString
+        Dim qualifier As String
+        Dim a As Integer = 1
+        Dim b As Integer = 0
+        Dim d As String = False
+        qualifier = """"
+        schemaTable = dr.GetSchemaTable()
+        cmd.Connection = pConn
+        Dim cmd1 As New OdbcCommand
+
+            For Each myProperty As DataColumn In schemaTable.Columns
+
+                st = "insert into test13("
+
+                For Each myfield As DataRow In schemaTable.Rows
+
+                    'Name = myfield(myProperty.ColumnName).ToString
+                    Name = myfield(myProperty).ToString().ToLower
+                    st = st + qualifier + Name + qualifier + ","
+
+                Next
+                st = st.TrimEnd(CChar(","))
+                st = st + ")values"
+                d = True
+                Exit For
+                'If d Then Exit For
+            Next
+            Response.Write(Now.ToString)
+            insertstat = st
+            lineno2 = st
+            If dr.HasRows Then
+
+
+                a = 0
+                insertstat = insertstat + "("
+                While dr.Read()
+                    'countdr = countdr + 1
+                    For i As Integer = 0 To dr.FieldCount - 1
+
+                        If (IsNumeric(dr(i))) Then
+                            insertstat = insertstat + dr(i).ToString + ","
+                            ''ElseIf (IsDate(dr(i))) Then
+                            ''    Dat = dr(i)
+                            ''    line = line + "'" + Dat.ToString("dd-MM-yyyy HH:mm:ss.fff") + "'" + ","
+                        Else
+                            insertstat = insertstat + "'" + dr(i).ToString() + "'" + ","
+                        End If
+
+                    Next
+                    insertstat = insertstat.TrimEnd(CChar("'"))
+                    insertstat = insertstat.TrimEnd(CChar(","))
+                    insertstat = insertstat + ")" + "," + "("
+
+                    a = a + 1
+                    If a = 6 Then
+
+                        cmd1.Connection = pConn
+                        insertstat = insertstat.TrimEnd(CChar(","))
+                        insertstat = insertstat.TrimEnd(CChar("("))
+                        insertstat = insertstat.TrimEnd(CChar(","))
+                    insertstat = insertstat + ";"
+                        a = 0
+                        cmd1.CommandText = insertstat
+                        ' Response.Write(line)
+                        Response.Flush()
+                        cmd1.ExecuteNonQuery()
+                        cmd1.Dispose()
+                        insertstat = lineno2
+                        insertstat = insertstat + "("
+
+                    End If
+                End While
+
+                If a = 0 Then
+                    insertstat = ""
+                ElseIf a > 0 Then
+
+                    insertstat = insertstat.TrimEnd(CChar(","))
+                    insertstat = insertstat.TrimEnd(CChar("("))
+                    insertstat = insertstat.TrimEnd(CChar(","))
+                    insertstat = insertstat + ";"
+                    cmd.CommandText = insertstat
+                    'Response.Write(line)
+                    Response.Flush()
+                    cmd.ExecuteNonQuery()
+                    cmd.Dispose()
+                End If
+            End If
+
+            Response.Write(Now.ToString)
+            'objWriter.Close()
+            dr.Close()
+            sConnn.Close()
+            pConn.Close()
+
+    End Function
+
+    
+
+
+
+    Function automaticconverttopostgres() As String
+        Dim connString As String = "Driver={PostgreSQL ANSI(x64)};Server=192.168.1.44;Port=5432;Database=SwiftDar;Uid=postgres;Pwd=postgres;"
+        Dim pConn As New Odbc.OdbcConnection
+        pConn.ConnectionString = connString
+        pConn.Open()
+        Dim dp As OdbcDataReader
+
+
+        Dim sConnn As New SqlConnection
+        Dim sConnectionString As String = "Data Source=192.168.1.111;Initial Catalog=Sutextest;Min Pool Size=5;User ID=sa;password=miscot;MultipleActiveResultSets=True;"
+        sConnn.ConnectionString = sConnectionString
+        sConnn.Open()
+
+        Dim dr As SqlDataReader
+        Dim schemaTable As DataTable
+        Dim sql As String = "SELECT * FROM [dbo].[test13]"
+        'Dim sql1 As String = TextArea1.InnerText
+        dr = GetDataReader(sql, sConnn)
+        Dim cmd As New OdbcCommand
+        Dim sLine As String = ""
+        Dim ds As DataSet
+        Dim Dat As Date = DateString
+        Dim qualifier As String
+        Dim a As Integer = 1
+        Dim b As Integer = 0
+        Dim d As String = False
+        qualifier = """"
+        schemaTable = dr.GetSchemaTable()
+        cmd.Connection = pConn
+        Dim cmd1 As New OdbcCommand
+        Dim countdr As Integer = 0
+        Dim countdp As Integer = 0
+        Dim query As String = "select * from test13"
+        If dr.HasRows() Then
+            While dr.Read()
+                countdr = countdr + 1
+                
+            End While
+       
+
+        End If
+        dp = GetDataReader1(query, pConn)
+        If dp.HasRows() Then
+            While dp.Read()
+                countdp = countdp + 1
+            End While
+            TextBox4.Text = countdp.ToString
+        End If
+        Dim lastrow As String = "Select TOP 1 with TIES * from test13 ORDER BY colname DESC"
+        dr = GetDataReader(lastrow, sConnn)
+        If dr.HasRows Then
+            While dr.Read()
+                For i As Integer = 0 To dr.FieldCount - 1
+                    st = st + dr(i).ToString
+                Next
+            End While
+            TextBox5.Text = st.ToString()
+
+        End If
+
+        If countdr > countdp Then
+
+
+        End If
+    End Function
+
+
+
+
+
+    Protected Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
+        Dim connString As String = "Driver={PostgreSQL ANSI(x64)};Server=192.168.1.44;Port=5432;Database=SwiftDar;Uid=postgres;Pwd=postgres;"
+        Dim pConn As New Odbc.OdbcConnection
+        pConn.ConnectionString = connString
+        pConn.Open()
+        Dim dp As OdbcDataReader
+
+
+        Dim sConnn As New SqlConnection
+        Dim sConnectionString As String = "Data Source=192.168.1.111;Initial Catalog=Sutextest;Min Pool Size=5;User ID=sa;password=miscot;MultipleActiveResultSets=True;"
+        sConnn.ConnectionString = sConnectionString
+        sConnn.Open()
+
+
+        Dim dr As SqlDataReader
+        Dim schemaTable As DataTable
+        ' Dim sql As String = "SELECT * FROM rey_sutex_laa"
+        Dim sql As String = TextArea1.InnerText
+        dr = GetDataReader(sql, sConnn)
+        Dim cmd As New OdbcCommand
+        Dim sLine As String = ""
+        Dim ds As DataSet
+        Dim Dat As Date = DateString
+        schemaTable = dr.GetSchemaTable()
+        Dim qualifier As String
+        Dim a As Integer = 1
+        Dim d As String = False
+        qualifier = """"
+        cmd.Connection = pConn
+
+        For Each myProperty As DataColumn In schemaTable.Columns
+
+            st = "insert into" + " " + DropDownList1.SelectedValue + "("
+
+            For Each myfield As DataRow In schemaTable.Rows
+
+                'Name = myfield(myProperty.ColumnName).ToString
+                Name = myfield(myProperty).ToString().ToLower
+                st = st + qualifier + Name + qualifier + ","
+
+            Next
+            st = st.TrimEnd(CChar(","))
+            st = st + ")values"
+            d = True
+            Exit For
+            'If d Then Exit For
+        Next
+        Response.Write(Now.ToString)
+        insertstat = st
+        lineno2 = st
+        If dr.HasRows Then
+
+
+            a = 0
+            insertstat = insertstat + "("
+            While dr.Read()
+                For i As Integer = 0 To dr.FieldCount - 1
+
+                    If (IsNumeric(dr(i))) Then
+                        insertstat = insertstat + dr(i).ToString + ","
+                        ''ElseIf (IsDate(dr(i))) Then
+                        ''    Dat = dr(i)
+                        ''    line = line + "'" + Dat.ToString("dd-MM-yyyy HH:mm:ss.fff") + "'" + ","
+                    Else
+                        insertstat = insertstat + "'" + dr(i).ToString() + "'" + ","
+                    End If
+
+                Next
+                insertstat = insertstat.TrimEnd(CChar("'"))
+                insertstat = insertstat.TrimEnd(CChar(","))
+                insertstat = insertstat + ")" + "," + "("
+
+                a = a + 1
+                If a = TextBox2.Text Then
+                    Dim cmd1 As New OdbcCommand
+                    cmd1.Connection = pConn
+                    insertstat = insertstat.TrimEnd(CChar(","))
+                    insertstat = insertstat.TrimEnd(CChar("("))
+                    insertstat = insertstat.TrimEnd(CChar(","))
+                    insertstat = insertstat + ";"
+                    a = 0
+                    cmd1.CommandText = insertstat
+                    ' Response.Write(line)
+                    Response.Flush()
+                    cmd1.ExecuteNonQuery()
+                    cmd1.Dispose()
+                    insertstat = lineno2
+                    insertstat = insertstat + "("
+
+                End If
+            End While
+            If a = 0 Then
+                insertstat = ""
+            ElseIf a > 0 Then
+
+                insertstat = insertstat.TrimEnd(CChar(","))
+                insertstat = insertstat.TrimEnd(CChar("("))
+                insertstat = insertstat.TrimEnd(CChar(","))
+                insertstat = insertstat + ";"
+                cmd.CommandText = insertstat
+                'Response.Write(line)
+                Response.Flush()
+                cmd.ExecuteNonQuery()
+                cmd.Dispose()
+            End If
+        End If
+        Response.Write(Now.ToString)
+        'objWriter.Close()
+        dr.Close()
+        sConnn.Close()
+        pConn.Close()
+
+    End Sub
+    Public Shared Sub ErrorLog(ByVal tabname As String, ByVal keyval As String, ByVal error_desc As String, ByVal mod_name As String)
+        Dim objReader As System.IO.StreamWriter
+        Dim startpath As String = ""
+        'MsgBox(error_desc)
+        startpath = HostingEnvironment.ApplicationPhysicalPath & "ErrorLog"
+        Dim FullPath As String = startpath
+        If Not Directory.Exists(FullPath) Then
+            Directory.CreateDirectory(FullPath)
+        End If
+        Try
+            FullPath = FullPath + "\" + tabname + ".txt"
+            objReader = New StreamWriter(FullPath, True)
+            Dim strData As String = tabname + " " + keyval + vbCrLf + mod_name & vbCrLf & error_desc + vbCrLf + vbCrLf
+            objReader.Write(strData)
+            objReader.Close()
+        Catch Ex As Exception
+
+        End Try
+    End Sub
+    Public Shared Function GetDataReader(ByVal sqlstring As String, ByRef con As OleDbConnection) As OleDbDataReader
+        Dim dr As OleDbDataReader
+        Dim cmd As New OleDbCommand
+        Try
+            cmd.CommandText = sqlstring
+            cmd.Connection = con
+            dr = cmd.ExecuteReader()
+        Catch ex As OleDbException
+            'StatusMessage = ex.Message
+            'ErrorLog("", sqlstring, ex.Message, "GetDataReader")
+        Finally
+            cmd.Dispose()
+        End Try
+        Return dr
+    End Function
+
+    Public Shared Function GetDataReader1(ByVal sqlstring As String, ByRef con As OdbcConnection) As OdbcDataReader
+        Dim dr As OdbcDataReader
+        Dim cmd As New OdbcCommand
+        Try
+            cmd.CommandText = sqlstring
+            cmd.Connection = con
+            dr = cmd.ExecuteReader()
+        Catch ex As Exception
+            'StatusMessage = ex.Message
+            'ErrorLog("", sqlstring, ex.Message, "GetDataReader")
+        Finally
+            cmd.Dispose()
+        End Try
+        Return dr
+    End Function
+
+    Public Shared Function GetDataReader2(ByVal sqlstring As String, ByRef con As OracleConnection) As OracleDataReader
+        Dim dr As OracleDataReader
+        Dim cmd As New OracleCommand
+        Try
+            cmd.CommandText = sqlstring
+            cmd.Connection = con
+            dr = cmd.ExecuteReader()
+        Catch ex As Exception
+            'StatusMessage = ex.Message
+            'ErrorLog("", sqlstring, ex.Message, "GetDataReader")
+        Finally
+            cmd.Dispose()
+        End Try
+        Return dr
+    End Function
+
+
+    Public Shared Function GetDataReader(ByVal sqlstring As String, ByRef con As SqlConnection) As SqlDataReader
+        Dim dr As SqlDataReader
+        Dim cmd As New SqlCommand
+        Try
+            cmd.CommandText = sqlstring
+            cmd.Connection = con
+            dr = cmd.ExecuteReader()
+        Catch ex As OleDbException
+            'StatusMessage = ex.Message
+            'ErrorLog("", sqlstring, ex.Message, "GetDataReader")
+        Finally
+            cmd.Dispose()
+        End Try
+        Return dr
+    End Function
+
+
+    Protected Sub btnadditem_Click(sender As Object, e As EventArgs) Handles btnadditem.Click
+        Dim target As String = TextBox1.Text
+
+        DropDownList1.Items.Add(New ListItem(target))
+
+    End Sub
+
+    Protected Sub Submit2_Click(sender As Object, e As EventArgs) Handles Submit2.Click
+        Dim connString As String = "Driver={PostgreSQL ANSI(x64)};Server=192.168.1.44;Port=5432;Database=SwiftDar;Uid=postgres;Pwd=postgres;"
+        Dim pConn As New Odbc.OdbcConnection
+        pConn.ConnectionString = connString
+        pConn.Open()
+        Dim dp As OdbcDataReader
+
+
+        Dim sConnn As New SqlConnection
+        Dim sConnectionString As String = "Data Source=192.168.1.111;Initial Catalog=Sutextest;Min Pool Size=5;User ID=sa;password=miscot;MultipleActiveResultSets=True;"
+        sConnn.ConnectionString = sConnectionString
+        sConnn.Open()
+
+
+        Dim dr As SqlDataReader
+        Dim schemaTable As DataTable
+        ' Dim sql As String = "SELECT * FROM rey_sutex_laa"
+        Dim sql As String = TextArea1.InnerText
+        dr = GetDataReader(sql, sConnn)
+        Dim cmd As New OdbcCommand
+        Dim sLine As String = ""
+        Dim ds As DataSet
+        Dim Dat As Date = DateString
+        schemaTable = dr.GetSchemaTable()
+        Dim qualifier As String
+        Dim a As Integer = 0
+        Dim d As String = False
+        qualifier = """"
+        cmd.Connection = pConn
+
+        For Each myProperty As DataColumn In schemaTable.Columns
+
+            st = "insert into" + " " + DropDownList1.SelectedValue + "("
+
+            For Each myfield As DataRow In schemaTable.Rows
+
+                'Name = myfield(myProperty.ColumnName).ToString
+                Name = myfield(myProperty).ToString().ToLower
+                st = st + qualifier + Name + qualifier + ","
+
+            Next
+            st = st.TrimEnd(CChar(","))
+            st = st + ")values"
+            d = True
+            Exit For
+            'If d Then Exit For
+        Next
+        Response.Write(Now.ToString)
+        insertstat = st
+        If dr.HasRows Then
+            insertstat = insertstat + "("
+            While dr.Read()
+
+                For i As Integer = 0 To dr.FieldCount - 1
+                    If (IsNumeric(dr(i))) Then
+                        insertstat = insertstat + dr(i).ToString + ","
+                        'ElseIf (IsDate(dr(i))) Then
+                        '    Dat = dr(i)
+                        '    line = line + "'" + Dat.ToString("dd-MM-yyyy HH:mm:ss.fff") + "'" + ","
+                    Else
+                        insertstat = insertstat + "'" + dr(i).ToString() + "'" + ","
+                    End If
+                Next
+
+                insertstat = insertstat.TrimEnd(CChar("'"))
+                insertstat = insertstat.TrimEnd(CChar(","))
+                insertstat = insertstat + ";"
+                cmd.CommandText = insertstat
+                'Response.Write(line)
+                Response.Flush()
+                cmd.ExecuteNonQuery()
+                cmd.Parameters.Clear()
+                'objWriter.WriteLine(line)
+            End While
+        End If
+        Response.Write(Now.ToString)
+        'objWriter.Close()
+        dr.Close()
+        sConnn.Close()
+        pConn.Close()
+
+    End Sub
+
+    Protected Sub Button2_Click(sender As Object, e As EventArgs) Handles Button2.Click
+        Dim connString As String = "Driver={PostgreSQL ANSI(x64)};Server=192.168.1.44;Port=5432;Database=SwiftDar;Uid=postgres;Pwd=postgres;"
+        Dim pConn As New Odbc.OdbcConnection
+        pConn.ConnectionString = connString
+        pConn.Open()
+        Dim dp As OdbcDataReader
+
+
+        Dim oConnn As New OracleConnection
+        Dim oConnectionString As String = "Data Source=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=192.168.1.222)(PORT=1521)))(CONNECT_DATA=(SERVER=dedicated)(sid=ORCL)));User Id=UCOETL;Password=UCOETL;"
+        oConnn.ConnectionString = oConnectionString
+        oConnn.Open()
+
+
+        Dim dr As OracleDataReader
+        Dim schemaTable As DataTable
+        ' Dim sql As String = "SELECT * FROM rey_sutex_laa"
+        Dim oracle As String = TextArea1.InnerText
+        dr = GetDataReader2(oracle, oConnn)
+        Dim cmd As New OdbcCommand
+        Dim sLine As String = ""
+        Dim ds As DataSet
+        Dim Dat As Date = DateString
+        schemaTable = dr.GetSchemaTable()
+        Dim qualifier As String
+        Dim a As Integer = 1
+        Dim d As String = False
+        qualifier = """"
+        cmd.Connection = pConn
+
+        For Each myProperty As DataColumn In schemaTable.Columns
+
+            st = "insert into" + " " + DropDownList1.SelectedValue + "("
+
+            For Each myfield As DataRow In schemaTable.Rows
+
+                'Name = myfield(myProperty.ColumnName).ToString
+                Name = myfield(myProperty).ToString().ToUpper
+                st = st + qualifier + Name + qualifier + ","
+
+            Next
+            st = st.TrimEnd(CChar(","))
+            st = st + ")values"
+            d = True
+            Exit For
+            'If d Then Exit For
+        Next
+        Response.Write(Now.ToString)
+        insertstat = st
+        lineno2 = st
+        If dr.HasRows Then
+
+
+            a = 0
+            insertstat = insertstat + "("
+            While dr.Read()
+                For i As Integer = 0 To dr.FieldCount - 1
+
+                    If (IsNumeric(dr(i))) Then
+                        insertstat = insertstat + dr(i).ToString + ","
+                        ''ElseIf (IsDate(dr(i))) Then
+                        ''    Dat = dr(i)
+                        ''    line = line + "'" + Dat.ToString("dd-MM-yyyy HH:mm:ss.fff") + "'" + ","
+                    Else
+                        insertstat = insertstat + "'" + dr(i).ToString() + "'" + ","
+                    End If
+
+                Next
+                insertstat = insertstat.TrimEnd(CChar("'"))
+                insertstat = insertstat.TrimEnd(CChar(","))
+                insertstat = insertstat + ")" + "," + "("
+
+                a = a + 1
+                If a = TextBox2.Text Then
+                    Dim cmd1 As New OdbcCommand
+                    cmd1.Connection = pConn
+                    insertstat = insertstat.TrimEnd(CChar(","))
+                    insertstat = insertstat.TrimEnd(CChar("("))
+                    insertstat = insertstat.TrimEnd(CChar(","))
+                    insertstat = insertstat + ";"
+                    a = 0
+                    cmd1.CommandText = insertstat
+                    ' Response.Write(line)
+                    Response.Flush()
+                    cmd1.ExecuteNonQuery()
+                    cmd1.Dispose()
+                    insertstat = lineno2
+                    insertstat = insertstat + "("
+
+                End If
+            End While
+            If a = 0 Then
+                insertstat = ""
+            ElseIf a > 0 Then
+
+                insertstat = insertstat.TrimEnd(CChar(","))
+                insertstat = insertstat.TrimEnd(CChar("("))
+                insertstat = insertstat.TrimEnd(CChar(","))
+                insertstat = insertstat + ";"
+                cmd.CommandText = insertstat
+                'Response.Write(line)
+                Response.Flush()
+                cmd.ExecuteNonQuery()
+                cmd.Dispose()
+            End If
+        End If
+        Response.Write(Now.ToString)
+        'objWriter.Close()
+        dr.Close()
+        oConnn.Close()
+        pConn.Close()
+    End Sub
+End Class
+
+' Function Wite_Text_FIle
+' Parameters Connection,Sql Query, Delimter,Qualifier,Ouptput file name
+' Esxmaple  Wite_Text_FIle(conn,"select name,age from table","|","","d:\test.txt"
+'Result be a file in d:\test.tx
+'Manoj|45
+'Reynold|23
+
+
+
+
+
+
+'Dim objReader As System.IO.StreamWriter
+'Dim startpath As String = ""
+'Dim FullPath As String = outputfilename
+'If Not System.IO.Directory.Exists(System.IO.Path.GetDirectoryName(FullPath)) Then
+'    System.IO.Directory.CreateDirectory(FullPath)
+'End If
+'FullPath = outputfilename
+'objReader = New System.IO.StreamWriter(FullPath, True)
+'Dim strData As String = Qualifier
+'objReader.Write(strData)
+'objReader.Close()
+
+
+'Using dt As New DataTable()
+
+'    'Build the Text file data.
+'    Dim txt As String = String.Empty
+
+'    For Each column As DataColumn In dt.Columns
+'        'Add the Header row for Text file.
+'        txt += column.ColumnName & vbTab & vbTab
+'    Next
+
+'    'Add new line.
+'    txt += vbCr & vbLf
+
+'    For Each row As DataRow In dt.Rows
+'        For Each column As DataColumn In dt.Columns
+'            'Add the Data rows.
+'            txt += row(column.ColumnName).ToString() & vbTab & vbTab
+'        Next
+
+'        'Add new line.
+'        txt += vbCr & vbLf
+'    Next
+
+'    'Download the Text file.
+'    Response.Clear()
+'    Response.Buffer = True
+'    Response.AddHeader("content-disposition", "attachment;filename=SqlExport.txt")
+'    Response.Charset = ""
+'    Response.ContentType = "application/text"
+'    Response.Output.Write(txt)
+'    Response.Flush()
+'    Response.End()
+'End Using
+
+
+'Dim bAns As Boolean = False
+'Dim objReader As System.IO.StreamWriter
+'objReader = New StreamWriter(query)
+'objReader.Write(outputfilename)
+'objReader.Close()
+'bAns = True
+
+
+'Dim FileName As String = "Peoples"
+'Dim ConnectionString As String = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=D:\;" & _
+'       "Extended Properties=""text;HDR=Yes;FMT=Delimited(,)"""
+'Dim cn As New OleDbConnection(ConnectionString)
+'Dim cmd As New OleDbCommand("SELECT * FROM " & FileName, cn)
+'Dim dt As New DataTable
+'            cn.Open()
+'            dt.Load(cmd.ExecuteReader)
+'            cn.Close()
+
+
+'wtf = 0
+'Dim comm As SqlCommand = Nothing
+''Dim dr As SqlDataReader = Nothing
+'comm = New SqlCommand(query, conn)
+'dr = comm.ExecuteReader(CommandBehavior.SingleResult)
+'dr.Read() ' Read one row from the table
+'wtf = dr(0)
